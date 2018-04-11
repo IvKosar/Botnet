@@ -1,1 +1,0 @@
-/usr/bin/g++  -g   CMakeFiles/Project.dir/main.cpp.o CMakeFiles/Project.dir/curlGames.cpp.o CMakeFiles/Project.dir/Bot.cpp.o  -o Project -lcurlpp -lcurl 
