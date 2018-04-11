@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.9)
-project(Project)
+cmake_minimum_required(VERSION 3.7)
+project(botnet)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(Project main.cpp curlGames.cpp curlGames.h Bot.cpp Bot.h)
+add_executable(botnet main.cpp curlGames.cpp curlGames.h Bot.cpp Bot.h)
 
-include_directories(/usr/include/curlpp)
-include_directories(/usr/include/x86_64-linux-gnu/curl)
+include_directories(${CURLPP_LIB})
+include_directories(${CURL_LIB})
 
-target_link_libraries(Project curlpp curl)
+target_link_libraries(botnet curlpp curl)

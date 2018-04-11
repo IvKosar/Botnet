@@ -14,7 +14,8 @@ int main(int argc, char* argv[])
     //curlppMulti(URL, NUM);
 
     Bot bot1(URL, NUM);
-    bot1.attack();
+    int fails = bot1.attack();
+    std::cout << "FAILED:" << fails << std::endl;
 
     return 0;
 }
