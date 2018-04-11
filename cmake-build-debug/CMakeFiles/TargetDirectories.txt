@@ -1,0 +1,3 @@
+/media/vosar/2AC2E2F12DC00F2B/CS@UCU/semester_2/CSysArchitecture/Project/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/media/vosar/2AC2E2F12DC00F2B/CS@UCU/semester_2/CSysArchitecture/Project/cmake-build-debug/CMakeFiles/edit_cache.dir
+/media/vosar/2AC2E2F12DC00F2B/CS@UCU/semester_2/CSysArchitecture/Project/cmake-build-debug/CMakeFiles/Project.dir
