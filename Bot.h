@@ -8,7 +8,7 @@
 #include "curlGames.h"
 
 class Bot {
-private:
+protected:
     //Attrs
     char* target;
     int number_of_requests;
