@@ -6,7 +6,7 @@
 #define BOTNET_BOT1_H
 
 #include <boost/asio.hpp>
-#include <boost/thread/thread.hpp>
+//#include <boost/thread/thread.hpp>
 
 using namespace boost::asio;
 

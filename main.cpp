@@ -3,19 +3,23 @@
 
 #include "Bot1.h"
 #include <iostream>
+#include <thread>
+#include "vector"
 #include "string"
 #include "boost/system/error_code.hpp"
+#include <boost/thread/thread.hpp>
+#include <boost/functional.hpp>
 
-using namespace boost::asio;
+//using namespace boost::asio;
 typedef boost::shared_ptr<ip::tcp::socket> socket_ptr;
-
-const std::string addr = "127.0.0.1";
-
-std::string data;
-
-io_service service;
-ip::tcp::endpoint ep(ip::address::from_string(addr), 8000);// listen on 8000
-ip::tcp::acceptor acc(service, ep);
+//
+//const std::string addr = "127.0.0.1";
+//
+//std::string data;
+//
+//io_service service;
+//ip::tcp::endpoint ep(ip::address::from_string(addr), 8000);// listen on 8000
+//ip::tcp::acceptor acc(service, ep);
 
 /*struct talk_to_svr
 {
@@ -74,15 +78,44 @@ private:
     std::string username_;
 };*/
 
+//size_t read_complete(char * buf, const boost::system::error_code & err, size_t bytes)
+//{
+//    if ( err) return 0;
+//    bool found = std::find(buf, buf + bytes, '\n') < buf + bytes;
+//    // we read one-by-one until we get to enter, no buffering
+//    return found ? 0 : 1;
+//}
+//
+//std::string process_msg(std::string& msg) {
+//    return msg;
+//}
+//
+//size_t read_answer(ip::tcp::socket& sock_)
+//{
+//    char buff_[1024];
+//    size_t already_read_ = 0;
+//    try {
+//        read(sock_, buffer(buff_),
+//             boost::bind(read_complete, _1, _2));
+//    }catch(boost::system::system_error& e){
+//        return 1;
+//    }
+//    process_msg(std::ref(std::string(buff_)));
+//    return 0;
+//}
+void sock_connect(socket_ptr sock, ip::tcp::endpoint& ep){
+    sock->connect(ep);
+}
 
-size_t write(ip::tcp::socket& sock_, const std::string & msg) {
+void my_write(ip::tcp::socket sock_,std::string msg, ip::address& addr) {// listen on 8000
     try {
-        return sock_.write_some(buffer(msg));
+        size_t res = sock_.write_some(buffer(msg));
     } catch (boost::system::system_error& e){
         //e.what();
-        return (size_t) -1;
+        //return (size_t) -1;
     }
 }
+void hello(int a, std::string s, socket_ptr sock){}
 
 int main(int argc, char* argv[]) {
 //    char *URL = argv[1];
@@ -93,21 +126,45 @@ int main(int argc, char* argv[]) {
 //    Bot bot1(URL, NUM);
 //    int fails = bot1.attack();
 //    std::cout << "FAILED:" << fails << std::endl;
-    char buff[1024];
-
     io_service service;
-    ip::tcp::endpoint ep(ip::address::from_string(argv[1]), 8000);// listen on 8000
+    ip::address target = ip::address::from_string(argv[1]);
+    ip::tcp::endpoint ep(target, 2021);
 
-    ip::tcp::socket sock(service);
-    //connect to target
-    sock.connect(ep);
-    //write data
-    for (size_t i = 0; i < atoi(argv[3]); ++i) {
-        size_t res = write(sock, argv[2]);
-        if (res < 0) std::cerr << "Unsuccessful write to socket" << std::endl;
+    ip::tcp::socket socket1(service);
+    socket1.connect(ep);
+
+    const int socket_number = atoi(argv[3]);
+    std::vector<boost::thread> threads;
+
+
+    socket_ptr sockets[socket_number];
+    socket_ptr sock(new ip::tcp::socket(service));
+    sock->connect(ep);
+    for (size_t i = 0; i < socket_number; ++i) {
+        socket_ptr sock(new ip::tcp::socket(service));
+        sockets[i] = sock;
+        threads.emplace_back(boost::thread(sock_connect, sock, boost::ref(ep)));
     }
-    size_t res1 = read(sock);
-    std::cout << res1 << std::endl;
+
+    for (auto& thr : threads){
+        thr.join();
+    }
+    threads.clear();
+
+    //write data
+    std::string msg = std::string(argv[2]);
+    for (size_t i = 0; i < socket_number; ++i) {
+        //threads.emplace_back(boost::thread(hello, 1, std::string("aaa"), sock ));
+        //threads.emplace_back(boost::thread(my_write, socket_ptr(ip::tcp::socket(service)), msg, boost::ref(target) ));
+        //size_t res = write(sock, argv[2]);
+        //if (res < 0) std::cerr << "Unsuccessful write to socket" << std::endl;
+    }
+//
+//    for (auto& thr : threads){
+//        thr.join();
+//    }
+//    //size_t res1 = read_answer(sock);
+    //std::cout << res1 << std::endl;
 
     return 0;
 }
