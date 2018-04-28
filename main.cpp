@@ -6,12 +6,21 @@
 #include <thread>
 #include "vector"
 #include "string"
+
 #include "boost/system/error_code.hpp"
 #include <boost/thread/thread.hpp>
 #include <boost/functional.hpp>
 
+const int DELAY = 5;
+
 //using namespace boost::asio;
 typedef boost::shared_ptr<ip::tcp::socket> socket_ptr;
+
+boost::mutex data_mut;
+boost::mutex io_mutex;
+boost::condition_variable cond_var;
+bool ready_socket = false;
+
 //
 //const std::string addr = "127.0.0.1";
 //
@@ -103,21 +112,33 @@ private:
 //    process_msg(std::ref(std::string(buff_)));
 //    return 0;
 //}
-void sock_connect(socket_ptr sock, ip::tcp::endpoint& ep){
+void sock_connect(socket_ptr sock, ip::tcp::endpoint &ep) {
     sock->connect(ep);
+    //boost::lock_guard<boost::mutex> lg(io_mutex);
+    //ready_socket = true;
+    //cond_var.notify_one();
+    //boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
 }
 
-void my_write(ip::tcp::socket sock_,std::string msg, ip::address& addr) {// listen on 8000
+void my_write(socket_ptr sock_, std::string msg, ip::address &addr) {
     try {
-        size_t res = sock_.write_some(buffer(msg));
-    } catch (boost::system::system_error& e){
-        //e.what();
+//        boost::unique_lock<boost::mutex> lck(data_mut);
+//        cond_var.wait(lck, [] { return ready_socket; });
+//
+//        boost::lock_guard<boost::mutex> lg(io_mutex);
+//        ready_socket = false;
+        boost::lock_guard<boost::mutex> lg(data_mut);
+        size_t res = sock_->write_some(buffer(msg));
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
+    } catch (boost::system::system_error &e) {
+        e.what();
         //return (size_t) -1;
     }
 }
-void hello(int a, std::string s, socket_ptr sock){}
 
-int main(int argc, char* argv[]) {
+void hello(int a, std::string s, socket_ptr sock) {}
+
+int main(int argc, char *argv[]) {
 //    char *URL = argv[1];
 //    int NUM = std::atoi(argv[2]);
 //    //curlppGetWithResp(URL);
@@ -129,42 +150,41 @@ int main(int argc, char* argv[]) {
     io_service service;
     ip::address target = ip::address::from_string(argv[1]);
     ip::tcp::endpoint ep(target, 2021);
-
-    ip::tcp::socket socket1(service);
-    socket1.connect(ep);
-
+    ip::tcp::acceptor acc(service, ep);
     const int socket_number = atoi(argv[3]);
-    std::vector<boost::thread> threads;
 
+    //std::vector<boost::thread> connection_threads;
 
+    // writing threads
+    std::string msg = std::string(argv[2]);
+    std::vector<boost::thread> write_threads;
+
+    // connection
     socket_ptr sockets[socket_number];
-    socket_ptr sock(new ip::tcp::socket(service));
-    sock->connect(ep);
     for (size_t i = 0; i < socket_number; ++i) {
         socket_ptr sock(new ip::tcp::socket(service));
         sockets[i] = sock;
-        threads.emplace_back(boost::thread(sock_connect, sock, boost::ref(ep)));
+        //connection_threads.emplace_back(boost::thread(sock_connect, sock, boost::ref(ep) ));
+        sock_connect(sock, boost::ref(ep));
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(1));
     }
-
-    for (auto& thr : threads){
-        thr.join();
-    }
-    threads.clear();
 
     //write data
-    std::string msg = std::string(argv[2]);
+    size_t sock_indx;
     for (size_t i = 0; i < socket_number; ++i) {
-        //threads.emplace_back(boost::thread(hello, 1, std::string("aaa"), sock ));
-        //threads.emplace_back(boost::thread(my_write, socket_ptr(ip::tcp::socket(service)), msg, boost::ref(target) ));
-        //size_t res = write(sock, argv[2]);
-        //if (res < 0) std::cerr << "Unsuccessful write to socket" << std::endl;
+        sock_indx = i % socket_number;
+        //msg.append("A");
+        write_threads.emplace_back(boost::thread(my_write, sockets[sock_indx], std::string(msg), boost::ref(target) ));
+        //my_write(sockets[sock_indx], std::string(msg), boost::ref(target));
     }
-//
-//    for (auto& thr : threads){
+
+//    for (auto &thr : connection_threads) {
 //        thr.join();
 //    }
-//    //size_t res1 = read_answer(sock);
-    //std::cout << res1 << std::endl;
+    for (auto &thr : write_threads) {
+        thr.join();
+    }
+
 
     return 0;
 }
