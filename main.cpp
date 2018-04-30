@@ -112,22 +112,39 @@ private:
 //    process_msg(std::ref(std::string(buff_)));
 //    return 0;
 //}
+void conn_and_wr(socket_ptr sock, ip::tcp::endpoint &ep, std::string msg){
+    //sock->connect(ep);
+    //connect(*sock, ep);
+    //size_t res = write(*sock, buffer(msg));
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
+    size_t res = sock->send(buffer(msg));
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
+
+//    boost::system::error_code error;
+//    streambuf read_buf;
+//    boost::asio::read(*(sock), read_buf, transfer_all(), error);
+//    const char* d =  buffer_cast<const char*>(read_buf.data());
+//    std::string data = std::string(d);
+//    return;
+}
+
 void sock_connect(socket_ptr sock, ip::tcp::endpoint &ep) {
-    sock->connect(ep);
     //boost::lock_guard<boost::mutex> lg(io_mutex);
+    sock->connect(ep);
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
     //ready_socket = true;
     //cond_var.notify_one();
     //boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
 }
 
-void my_write(socket_ptr sock_, std::string msg, ip::address &addr) {
+void my_write(socket_ptr sock_, std::string msg) {
     try {
 //        boost::unique_lock<boost::mutex> lck(data_mut);
 //        cond_var.wait(lck, [] { return ready_socket; });
 //
 //        boost::lock_guard<boost::mutex> lg(io_mutex);
 //        ready_socket = false;
-        boost::lock_guard<boost::mutex> lg(data_mut);
+        //boost::lock_guard<boost::mutex> lg(data_mut);
         size_t res = sock_->write_some(buffer(msg));
         boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
     } catch (boost::system::system_error &e) {
@@ -147,9 +164,10 @@ int main(int argc, char *argv[]) {
 //    Bot bot1(URL, NUM);
 //    int fails = bot1.attack();
 //    std::cout << "FAILED:" << fails << std::endl;
+    const int PORT = 2021;
     io_service service;
     ip::address target = ip::address::from_string(argv[1]);
-    ip::tcp::endpoint ep(target, 2021);
+    ip::tcp::endpoint ep(target, PORT);
     ip::tcp::acceptor acc(service, ep);
     const int socket_number = atoi(argv[3]);
 
@@ -158,15 +176,16 @@ int main(int argc, char *argv[]) {
     // writing threads
     std::string msg = std::string(argv[2]);
     std::vector<boost::thread> write_threads;
+    std::vector<boost::thread> connection_threads;
 
     // connection
     socket_ptr sockets[socket_number];
     for (size_t i = 0; i < socket_number; ++i) {
         socket_ptr sock(new ip::tcp::socket(service));
+        //conn_and_wr(sock, std::ref(ep), msg);
         sockets[i] = sock;
-        //connection_threads.emplace_back(boost::thread(sock_connect, sock, boost::ref(ep) ));
+        connection_threads.emplace_back(boost::thread(sock_connect, sock, boost::ref(ep) ));
         sock_connect(sock, boost::ref(ep));
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(1));
     }
 
     //write data
@@ -174,16 +193,16 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < socket_number; ++i) {
         sock_indx = i % socket_number;
         //msg.append("A");
-        write_threads.emplace_back(boost::thread(my_write, sockets[sock_indx], std::string(msg), boost::ref(target) ));
-        //my_write(sockets[sock_indx], std::string(msg), boost::ref(target));
+        //write_threads.emplace_back(boost::thread(my_write, sockets[sock_indx], std::string(msg) ));
+        my_write(sockets[sock_indx], std::string(msg) );
     }
 
 //    for (auto &thr : connection_threads) {
 //        thr.join();
 //    }
-    for (auto &thr : write_threads) {
-        thr.join();
-    }
+//    for (auto &thr : write_threads) {
+//        thr.join();
+//    }
 
 
     return 0;
