@@ -117,7 +117,7 @@ void sock_connect(socket_ptr sock, ip::tcp::endpoint &ep) {
     //boost::lock_guard<boost::mutex> lg(io_mutex);
     //ready_socket = true;
     //cond_var.notify_one();
-    //boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
+    boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
 }
 
 void my_write(socket_ptr sock_, std::string msg, ip::address &addr) {
@@ -127,7 +127,7 @@ void my_write(socket_ptr sock_, std::string msg, ip::address &addr) {
 //
 //        boost::lock_guard<boost::mutex> lg(io_mutex);
 //        ready_socket = false;
-        boost::lock_guard<boost::mutex> lg(data_mut);
+        //boost::lock_guard<boost::mutex> lg(data_mut);
         size_t res = sock_->write_some(buffer(msg));
         boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
     } catch (boost::system::system_error &e) {
@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
         sockets[i] = sock;
         //connection_threads.emplace_back(boost::thread(sock_connect, sock, boost::ref(ep) ));
         sock_connect(sock, boost::ref(ep));
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(1));
+        boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
     }
 
     //write data
@@ -174,16 +174,16 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < socket_number; ++i) {
         sock_indx = i % socket_number;
         //msg.append("A");
-        write_threads.emplace_back(boost::thread(my_write, sockets[sock_indx], std::string(msg), boost::ref(target) ));
-        //my_write(sockets[sock_indx], std::string(msg), boost::ref(target));
+        //write_threads.emplace_back(boost::thread(my_write, sockets[sock_indx], std::string(msg), boost::ref(target) ));
+        my_write(sockets[sock_indx], std::string(msg), boost::ref(target));
     }
 
 //    for (auto &thr : connection_threads) {
 //        thr.join();
 //    }
-    for (auto &thr : write_threads) {
-        thr.join();
-    }
+//    for (auto &thr : write_threads) {
+//        thr.join();
+//    }
 
 
     return 0;
