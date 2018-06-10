@@ -8,6 +8,7 @@
 #include <iostream>
 #include "vector"
 #include "string"
+#include <algorithm>
 
 #include <boost/asio.hpp>
 #include "boost/system/error_code.hpp"
@@ -19,8 +20,8 @@ using namespace boost::asio;
 typedef boost::shared_ptr<ip::tcp::socket> socket_ptr;
 
 class SimpleBot{
-protected:
-    const static size_t NUMBER_OF_THREADS = 4;
+public:
+    const static size_t NUMBER_OF_THREADS = 4;//const_cast<unsigned int&>(boost::thread::hardware_concurrency());
     io_service services[NUMBER_OF_THREADS];
     ip::tcp::endpoint ep;
 
