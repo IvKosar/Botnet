@@ -1,1 +1,9 @@
-LOOK AT MAIN
+Botnet has two parts: Server and Bot. The later is divided into CommunicationBot(talks to server) and AttackBot(talks to target).
+Botnet assumes that Bot is infected into innocent binary file. So victim starts it by himself with no doubts.
+Server is started by Master from gui or console interface.
+However for now Botnet is divided into not connected parts. We are working on it =)
+
+To run attackBot properly you must have Boost installed.
+Compile it with cmake file CMAkeLists.txt in the project root and run ./botnet <ip-address> <port> <request> <# of requests>
+
+Server and CommunicationBot are in process of development.

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+
+    <style>
+
+    h1 {
+      top: 25%;
+      padding: 50px 0px;
+      color: red;
+      font-size: 65px;
+      font-family: "Comic Sans MS", Comic Sans, cursive;
+
+    }
+
+    body{
+      background-color: #2E2E2E;
+    }
+
+    ul{
+      list-style-type: none;
+    }
+
+    li{
+      font-family: "Comic Sans MS", Comic Sans, cursive;
+      color: red;
+    }
+
+    </style>
+
+  </head>
+
+  <body>
+
+    <h1 align="center">BotNet</h1>
+
+    <form method="POST" action="/">
+      <div class="form-group" align="center">
+      <ul align="center">
+        <li> IP Address:              <input type="text" name="ip_address"></li>
+        <li> Port:                    <input type="text" name="port"></li>
+        <li> Number of connections:   <input type="text" name="conn_number"></li>
+        <li> Number of requests:      <input type="text" name="req_number"></li>
+        <li> Request:                 <input type="text" name="requ"></li>
+      </ul>
+      <input class="btn btn-primary" type="submit" value="Attack!">
+    </div>
+    </form>
+  </body>
+</html>

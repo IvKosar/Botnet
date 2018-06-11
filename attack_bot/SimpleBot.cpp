@@ -10,6 +10,7 @@ SimpleBot::SimpleBot(char *target, char *port, char *request, char *socket_numbe
     this->ep = ip::tcp::endpoint(this->target, this->port);
     this->request = std::string(request);
     this->socket_number = (size_t) atoi(socket_number);
+    //this->mut_(mut);
 }
 
 void SimpleBot::attack() {
@@ -69,23 +70,43 @@ void SimpleBot::handle_connect(const boost::system::error_code &ec, socket_ptr s
 
 void SimpleBot::handle_write(const boost::system::error_code &ec, size_t bytes_trans, socket_ptr sock) {
     if (!ec) {
-        std::string response;
-        async_read(*(sock.get()), buffer(response), transfer_exactly(1),
-                                    [this, sock, response](const boost::system::error_code &ec, size_t bytes_tr) {
-                                        handle_read(ec, bytes_tr, sock, std::ref(response));
+//        std::thread reader(show_read, sock, this->mut_);
+//        reader.detach();
+        //boost::asio::streambuf read_buf;
+        async_read_until(*(sock.get()), this->read_buf, "/",
+
+                                    [this, sock](const boost::system::error_code &ec, size_t bytes_tr) {
+                                        handle_read(ec, bytes_tr, sock);
                                     });
     } else {
         std::cerr << ec.message() << std::endl;
     }
 }
 
-void SimpleBot::handle_read(const boost::system::error_code &ec, size_t bytes_tr, socket_ptr sock,
-                            const std::string &response) {
+//[this](const boost::system::error_code & ec, size_t bytes){
+//read_complete(ec, bytes);
+//},
+
+void SimpleBot::handle_read(const boost::system::error_code &ec, size_t bytes_tr, socket_ptr sock) {
     if (!ec) {
-        std::cout << "Sent and Received messages are equal: " << response << std::endl;
+        std::cout << "Received bytes: " << bytes_tr << std::endl;
+        std::string res = from_buf_to_string(this->read_buf);
+        std::cout << "Received message " << std::string(res.begin(), res.begin()+bytes_tr) << std::endl;
         sock.get()->close();
     } else {
         std::cerr << ec.message() << std::endl;
     }
 }
 
+size_t SimpleBot::read_complete(const boost::system::error_code & err, size_t bytes)
+{
+    if ( err) return 0;
+    std::string buf = from_buf_to_string(this->read_buf);
+    ssize_t found = buf.find("/");
+    return (found < buf.length()) ? 0 : 1;
+}
+
+std::string SimpleBot::from_buf_to_string(boost::asio::streambuf& streambuf){
+    return {boost::asio::buffers_begin(streambuf.data()),
+            boost::asio::buffers_end(streambuf.data())};
+}

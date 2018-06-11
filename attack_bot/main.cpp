@@ -10,9 +10,7 @@ int main(int argc, char *argv[]) {
     /*
      * Args: IP, Port, Request_Message, # of requests
      */
-
     SimpleBot bot(argv[1], argv[2], argv[3], argv[4]);
-    std::cout << bot.NUMBER_OF_THREADS << std::endl;
     boost::timer::auto_cpu_timer timer;
     bot.attack();
 
