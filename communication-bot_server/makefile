@@ -1,7 +1,13 @@
-all: server client
+all: server client bot
 
-server: server.cpp
-	g++ server.cpp -o server
+server: server.c
+	gcc server.c -o server
 
-client: client.cpp
-	g++ client.cpp -o client
+client: client.c
+	gcc client.c -o client
+
+bot: bot.c
+	gcc bot.c -o bot
+
+clean:
+	rm rf*

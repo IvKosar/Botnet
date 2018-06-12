@@ -1,0 +1,2 @@
+class CppException(Exception):
+    pass

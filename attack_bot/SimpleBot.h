@@ -10,24 +10,31 @@
 #include "string"
 #include <algorithm>
 #include <thread>
+#include <chrono>
 
 #include <boost/asio.hpp>
 #include "boost/system/error_code.hpp"
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
+#include <boost/lambda/bind.hpp>
+#include <boost/lambda/lambda.hpp>
 
 using namespace boost::asio;
+using namespace boost::posix_time;
 
 typedef boost::shared_ptr<ip::tcp::socket> socket_ptr;
+typedef boost::shared_ptr<deadline_timer> deadline_ptr;
 
 class SimpleBot{
 public:
     const static size_t NUMBER_OF_THREADS = 4;//const_cast<unsigned int&>(boost::thread::hardware_concurrency());
     io_service services[NUMBER_OF_THREADS];
     ip::tcp::endpoint ep;
-    char read_buf_[256];
-    boost::asio::streambuf read_buf;
+    streambuf read_buf;
+    std::string delim;
+    boost::posix_time::time_duration timeout = boost::posix_time::microseconds(10);
+
 
     void runner(size_t indx);
 
@@ -39,11 +46,16 @@ public:
 
     void handle_write(const boost::system::error_code& ec, size_t bytes_trans, socket_ptr sock);
 
+    void on_timeout(const boost::system::error_code& e, socket_ptr sock, deadline_ptr deadline);
+
+    void on_down(socket_ptr sock);
+
     size_t read_complete(const boost::system::error_code & err, size_t bytes);
 
-    void handle_read(const boost::system::error_code& ec, size_t bytes_tr, socket_ptr sock);
+    void handle_read(const boost::system::error_code& ec, size_t bytes_tr, socket_ptr sock, deadline_ptr deadline);
 
     std::string from_buf_to_string(boost::asio::streambuf& streambuf);
+
 
 public:
     ip::address target;

