@@ -80,7 +80,6 @@ void SimpleBot::handle_write(const boost::system::error_code &ec, size_t bytes_t
     if (!ec) {
         deadline_ptr deadline(new deadline_timer(sock.get()->get_io_context(),
                                                  microsec_clock::universal_time() + this->timeout));
-        //deadline.get()->expires_from_now(seconds(10))
         deadline.get()->async_wait(
                     [this, sock, deadline](const boost::system::error_code& e) {
                         on_timeout(e, sock, deadline);
@@ -112,9 +111,11 @@ void SimpleBot::on_timeout(const boost::system::error_code& e, socket_ptr sock, 
 //},
 
 void SimpleBot::on_down(socket_ptr sock){
-    std::cout << "SERVER DOWN!" << std::endl;
     sock.get()->close();
-    sock.get()->get_io_context().stop();
+    for (auto& srv : this->services){
+        srv.stop();
+    }
+    this->serv_failed = true;
 }
 
 void SimpleBot::handle_read(const boost::system::error_code &ec, size_t bytes_tr, socket_ptr sock, deadline_ptr deadline) {
@@ -124,43 +125,16 @@ void SimpleBot::handle_read(const boost::system::error_code &ec, size_t bytes_tr
         std::string res = from_buf_to_string(this->read_buf);
         std::cout << "Received message " << std::string(res.begin(), res.begin()+bytes_tr) << std::endl;
         sock.get()->close();
-    } else if (ec == error::operation_aborted || ec == error::eof) {}
+    } else if (ec == error::operation_aborted || ec == error::eof) {
+       on_down(sock);
+    }
     else{
         std::cerr <<"Mess "<< ec.message() << std::endl;
     }
 }
 
-size_t SimpleBot::read_complete(const boost::system::error_code & err, size_t bytes)
-{
-    if ( err) return 0;
-    std::string buf = from_buf_to_string(this->read_buf);
-    ssize_t found = buf.find(this->delim);
-    return (found < buf.length()) ? 0 : 1;
-}
 
 std::string SimpleBot::from_buf_to_string(boost::asio::streambuf& streambuf){
     return {boost::asio::buffers_begin(streambuf.data()),
             boost::asio::buffers_end(streambuf.data())};
 }
-
-//void SimpleBot::check_deadline(deadline_ptr deadline_, socket_ptr sock)
-//{
-//    // Check whether the deadline has passed. We compare the deadline against
-//    // the current time since a new asynchronous operation may have moved the
-//    // deadline before this actor had a chance to run.
-//    if (deadline_.expires_at() <= deadline_timer::traits_type::now())
-//    {
-//        // The deadline has passed. The socket is closed so that any outstanding
-//        // asynchronous operations are cancelled. This allows the blocked
-//        // connect(), read_line() or write_line() functions to return.
-//        boost::system::error_code ignored_ec;
-//        sock.get()->close(ignored_ec);
-//
-//        // There is no longer an active deadline. The expiry is set to positive
-//        // infinity so that the actor takes no action until a new deadline is set.
-//        deadline_.expires_at(boost::posix_time::pos_infin);
-//    }
-//
-//    // Put the actor back to sleep.
-//    deadline_.async_wait(bind(&SimpleBot::check_deadline, this));
-//}

@@ -31,9 +31,12 @@ public:
     const static size_t NUMBER_OF_THREADS = 4;//const_cast<unsigned int&>(boost::thread::hardware_concurrency());
     io_service services[NUMBER_OF_THREADS];
     ip::tcp::endpoint ep;
+
     streambuf read_buf;
     std::string delim;
-    boost::posix_time::time_duration timeout = boost::posix_time::microseconds(10);
+    boost::posix_time::time_duration timeout = boost::posix_time::seconds(100);
+
+    bool serv_failed = false;
 
 
     void runner(size_t indx);
@@ -49,8 +52,6 @@ public:
     void on_timeout(const boost::system::error_code& e, socket_ptr sock, deadline_ptr deadline);
 
     void on_down(socket_ptr sock);
-
-    size_t read_complete(const boost::system::error_code & err, size_t bytes);
 
     void handle_read(const boost::system::error_code& ec, size_t bytes_tr, socket_ptr sock, deadline_ptr deadline);
 
