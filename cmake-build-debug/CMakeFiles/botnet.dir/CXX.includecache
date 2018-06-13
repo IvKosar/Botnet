@@ -1,0 +1,44 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/dobosevych/Desktop/BotNet/Botnet/attack_bot/SimpleBot.cpp
+SimpleBot.h
+/home/dobosevych/Desktop/BotNet/Botnet/attack_bot/SimpleBot.h
+
+/home/dobosevych/Desktop/BotNet/Botnet/attack_bot/SimpleBot.h
+iostream
+-
+vector
+/home/dobosevych/Desktop/BotNet/Botnet/attack_bot/vector
+string
+/home/dobosevych/Desktop/BotNet/Botnet/attack_bot/string
+algorithm
+-
+thread
+-
+chrono
+-
+boost/asio.hpp
+-
+boost/system/error_code.hpp
+/home/dobosevych/Desktop/BotNet/Botnet/attack_bot/boost/system/error_code.hpp
+boost/thread/thread.hpp
+-
+boost/bind.hpp
+-
+
+/home/dobosevych/Desktop/BotNet/Botnet/attack_bot/main.cpp
+stdlib.h
+-
+unistd.h
+-
+time.h
+-
+SimpleBot.h
+/home/dobosevych/Desktop/BotNet/Botnet/attack_bot/SimpleBot.h
+

@@ -41,14 +41,22 @@ int main(){
   printf("%s\n","Message received");
   printf("%s%s\n", "Message: ", buffer);*/
   FILE* fp;
+  FILE* fl;
   char buffr[255];
 
+  fl = fopen("ind.txt", "r");
+  while(fl == NULL){
+    fl = fopen("ind.txt", "r");
+  }
+
+  fclose(fl);
   fp = fopen("conf.txt", "r");
-  while(fp == NULL){
-    fp = fopen("conf.txt", "r");
+  if(fp == NULL){
+    printf("%s\n", "Unable open the configuration file");
+    return 1;
   }
   while(fgets(buffr, 255, (FILE*) fp)) {
-      printf("%s", buffr);
+      printf("%s\n", buffr);
       send(new_socket, buffr, strlen(buffr), 0);
   }
 

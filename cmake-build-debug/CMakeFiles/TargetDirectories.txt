@@ -1,0 +1,3 @@
+/home/dobosevych/Desktop/BotNet/Botnet/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/dobosevych/Desktop/BotNet/Botnet/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/dobosevych/Desktop/BotNet/Botnet/cmake-build-debug/CMakeFiles/botnet.dir

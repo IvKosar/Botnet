@@ -20,6 +20,8 @@ def get_data():
         file.write("\n")
         file.write("Req:" + request.form['requ'])
         file.close()
+        fl = open("ind.txt", "w")
+        fl.close()
 
         # Start Botnet Server
         srv_run = ServerRunner()
