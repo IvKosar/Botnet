@@ -82,7 +82,7 @@ void SimpleBot::handle_connect(const boost::system::error_code &ec, socket_ptr s
 
 void SimpleBot::handle_write(const boost::system::error_code &ec, size_t bytes_trans, socket_ptr sock) {
     if (!ec) {
-        deadline_ptr deadline(new deadline_timer(sock.get()->get_io_context(),
+        deadline_ptr deadline(new deadline_timer(sock.get()->get_io_service(),
                                                  microsec_clock::universal_time() + this->timeout));
         deadline.get()->async_wait(
                     [this, sock, deadline](const boost::system::error_code& e) {
