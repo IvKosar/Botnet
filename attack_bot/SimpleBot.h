@@ -17,8 +17,6 @@
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 
-#include <boost/lambda/bind.hpp>
-#include <boost/lambda/lambda.hpp>
 
 using namespace boost::asio;
 using namespace boost::posix_time;
