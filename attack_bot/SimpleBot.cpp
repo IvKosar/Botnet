@@ -71,6 +71,9 @@ void SimpleBot::handle_connect(const boost::system::error_code &ec, socket_ptr s
         std::cout << "REFUSED" << std::endl;
         on_down(sock);
     }
+        else if(ec == error::host_unreachable){
+        on_down(sock);
+    }
     else {
         std::cerr << ec.message() << std::endl;
     }
@@ -139,6 +142,14 @@ void SimpleBot::handle_read(const boost::system::error_code &ec, size_t bytes_tr
     else{
         std::cerr <<"Mess "<< ec.message() << std::endl;
     }
+}
+
+void SimpleBot::on_unreachable(socket_ptr sock){
+    sock.get()->close();
+    for (auto& srv : this->services){
+        srv.stop();
+    }
+    this->serv_unreach = true;
 }
 
 

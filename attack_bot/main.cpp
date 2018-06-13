@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     std::cout << start_time << std::endl;
     cur_time = time(NULL);
     while (cur_time < start_time){
-        std::cout << cur_time << std::endl;
+        std::cout << "WAITING..." << std::endl;
         cur_time = time(NULL);
         sleep(1);
     }
@@ -28,6 +28,9 @@ int main(int argc, char *argv[]) {
     ptime finish = boost::posix_time::microsec_clock::universal_time();
     if(bot.serv_failed){
         std::cout << "SERVER KILLED" << std::endl;
+    }
+    if(bot.serv_unreach){
+        std::cout << "TARGET UNREACHABLE" << std::endl;
     }
     boost::posix_time::time_duration td = finish - start;
     std::cout << "Time spent: " << td.total_milliseconds() << " millisec" << std::endl;
