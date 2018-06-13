@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
      */
     if (argc < 5) return -1;
 
-    time_t cur_time, start_time = atoi(argv[5]);
+    time_t cur_time, start_time = atoi(argv[3]);
     std::cout << start_time << std::endl;
     cur_time = time(NULL);
     while (cur_time < start_time){
@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
     }
 
     std::cout << "START BOT" << std::endl;
-    SimpleBot bot(argv[1], argv[2], argv[3], argv[4]);
+    SimpleBot bot(argv[1], argv[2], argv[5], argv[4]);
     ptime start = boost::posix_time::microsec_clock::universal_time();
     bot.attack();
     ptime finish = boost::posix_time::microsec_clock::universal_time();
